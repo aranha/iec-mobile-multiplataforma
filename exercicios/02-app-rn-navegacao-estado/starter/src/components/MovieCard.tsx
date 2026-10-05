@@ -6,27 +6,37 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Movie } from '@/types/movie';
 import { posterUrl } from '@/utils/poster-url';
 import type { RootStackParamList } from '@/routes/RootStack';
-// TODO [TASK 6]: import store de favoritos
-// import { useFavoritesStore } from '@/store/favoritesStore';
-// TODO [TASK 8]: import HeartButton (criar componente Reanimated)
-// import HeartButton from './HeartButton';
+import { useFavoritesStore } from '@/store/favoritesStore';
+import { movieByIdQueryOptions } from '@/queries/movies/get-movie-by-id';
+import HeartButton from './HeartButton';
+import { useSwipeGuard } from './SwipeableCard';
 
 type Props = { movie: Movie };
 
 export default function MovieCard({ movie }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const queryClient = useQueryClient();
   const poster = posterUrl(movie.poster_path, 'w185');
 
-  // TODO [TASK 6]: ler isFavorite + toggle do store
-  // const isFav = useFavoritesStore((s) => s.isFavorite(movie.id));
-  // const toggle = useFavoritesStore((s) => s.toggle);
+  // Seletores: o card só re-renderiza quando o favorito DESTE filme muda.
+  const isFav = useFavoritesStore((s) => s.isFavorite(movie.id));
+  const toggle = useFavoritesStore((s) => s.toggle);
+  // null fora de um SwipeableCard (ex.: aba Favoritos)
+  const swipeGuard = useSwipeGuard();
 
   return (
     <Pressable
-      onPress={() => navigation.navigate('Detail', { id: movie.id, title: movie.title })}
+      // Prefetch no início do toque: o detalhe começa a carregar antes da navegação.
+      onPressIn={() => queryClient.prefetchQuery(movieByIdQueryOptions(movie.id))}
+      onPress={() => {
+        // fim de um arrasto (swipe) não conta como toque no card
+        if (swipeGuard?.wasSwiping()) return;
+        navigation.navigate('Detail', { id: movie.id, title: movie.title });
+      }}
       style={styles.card}
     >
       {poster && <Image source={{ uri: poster }} style={styles.poster} />}
@@ -37,16 +47,7 @@ export default function MovieCard({ movie }: Props) {
         <Text style={styles.meta}>⭐ {movie.vote_average.toFixed(1)}</Text>
       </View>
 
-      {/* TODO [TASK 8]: substituir por <HeartButton active={isFav} onPress={() => toggle(movie.id)} /> */}
-      <Pressable
-        onPress={(e) => {
-          e.stopPropagation();
-          // TODO [TASK 6]: toggle(movie.id)
-        }}
-        style={styles.heart}
-      >
-        <Text style={styles.heartIcon}>🤍</Text>
-      </Pressable>
+      <HeartButton active={isFav} onPress={() => toggle(movie.id)} />
     </Pressable>
   );
 }
@@ -59,11 +60,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: '#ccc',
+    backgroundColor: '#fff',
   },
   poster: { width: 60, height: 90, borderRadius: 4 },
   info: { flex: 1, gap: 4 },
   title: { fontSize: 16, fontWeight: '600' },
   meta: { color: '#666', fontSize: 12 },
-  heart: { padding: 8 },
-  heartIcon: { fontSize: 24 },
 });

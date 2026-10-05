@@ -17,6 +17,8 @@ import { useMovieById } from '@/queries/movies/get-movie-by-id';
 import { posterUrl } from '@/utils/poster-url';
 import { isTokenError } from '@/services/api';
 import TokenMissingScreen from '@/components/TokenMissingScreen';
+import HeartButton from '@/components/HeartButton';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import type { RootStackParamList } from '@/routes/RootStack';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Detail'>;
@@ -24,6 +26,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Detail'>;
 export default function MovieDetail({ route, navigation }: Props) {
   const { id } = route.params;
   const { data, isLoading, error } = useMovieById(id);
+  // Hooks antes dos early returns (regra dos hooks).
+  const isFav = useFavoritesStore((s) => s.isFavorite(id));
+  const toggle = useFavoritesStore((s) => s.toggle);
 
   if (isTokenError(error)) return <TokenMissingScreen />;
   if (isLoading) return <ActivityIndicator style={styles.center} />;
@@ -40,10 +45,9 @@ export default function MovieDetail({ route, navigation }: Props) {
 
       {poster && <Image source={{ uri: poster }} style={styles.poster} />}
 
-      {/* Linha com título + slot pro HeartButton (TASK 8) */}
       <View style={styles.headerRow}>
         <Text style={styles.title}>{data.title}</Text>
-        {/* TODO [TASK 8]: <HeartButton active={isFav} onPress={() => toggle(id)} /> */}
+        <HeartButton active={isFav} onPress={() => toggle(id)} size={30} />
       </View>
 
       <Text style={styles.meta}>
