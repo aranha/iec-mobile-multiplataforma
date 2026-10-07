@@ -6,45 +6,77 @@
 // Ex5 (TASK 8): banner com Remote Config.
 
 import 'package:flutter/material.dart';
-// TASK 5/6 — vire `ConsumerWidget` (build(context, ref)) e descomente:
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import '../state/favorites.dart';
-// TODO [TASK 8]: descomente quando o remote_config.dart estiver pronto
-// import '../services/remote_config.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../state/favorites.dart';
+import '../services/remote_config.dart';
+import '../theme/app_theme.dart';
 import '../widgets/movie_list.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/offline_toggle.dart';
 
-class HomeScreen extends StatelessWidget {
+// ConsumerStatefulWidget (e não ConsumerWidget): o banner do Remote Config é buscado UMA vez no
+// initState. Num ConsumerWidget o Future seria recriado a cada rebuild — ou seja, a cada favorito.
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late final Future<String> _banner;
+
+  @override
+  void initState() {
+    super.initState();
+    _banner = fetchBannerMessage(); // TASK 8
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final count = ref.watch(favoritesProvider).length; // TASK 5: mesma fonte que o card usa
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Filmes'),
-        actions: const [
-          OfflineToggle(), // modo avião simulado (pronto)
-          // ── Ex2 · TASK 6 — botão "limpar" favoritos · 🧑‍💻 EM CASA (sozinho) ──
-          // adicione um IconButton(icon: Icon(Icons.delete_outline)) que chama
-          //   ref.read(favoritesProvider.notifier).clear()
-          //
-          // ── Ex2 · TASK 5 — contador de favoritos · 🧑‍💻 EM CASA (sozinho) ─────
-          // troque o '0' por ref.watch(favoritesProvider).length
+        actions: [
+          const OfflineToggle(), // modo avião simulado (pronto)
+          // TASK 6: limpar — escreve no mesmo provider; card e contador reagem sozinhos
+          IconButton(
+            tooltip: 'Limpar favoritos',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => ref.read(favoritesProvider.notifier).clear(),
+          ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Center(child: Text('♥ 0')),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(child: Text('♥ $count')),
           ),
         ],
       ),
       body: Column(
-        // ignore: prefer_const_literals_to_create_immutables
         children: [
           const OfflineBanner(), // TASK 11 — aviso de offline
-          // ── Ex5 · TASK 8 — banner Remote Config · 🧑‍💻 EM CASA (sozinho) ────────────────
-          // Vire esta parte um FutureBuilder<String> (ou StatefulWidget com initState)
-          // que chama fetchBannerMessage() de '../services/remote_config.dart' e
-          // renderiza o texto retornado num Container no topo da lista.
+          // TASK 8: banner com o texto do Remote Config (muda no console, sem novo deploy)
+          FutureBuilder<String>(
+            future: _banner,
+            builder: (context, snap) {
+              final msg = snap.data;
+              if (msg == null || msg.isEmpty) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: AppColors.brandGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  msg,
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                ),
+              );
+            },
+          ),
           const Expanded(child: MovieList()), // lista vinda do repositório (cache-first)
         ],
       ),

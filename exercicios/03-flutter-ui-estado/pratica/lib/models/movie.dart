@@ -18,14 +18,23 @@ class Movie {
     this.posterPath,
   });
 
-  // ── TASK 12 — serialização · fácil ───────────────────────────────────────────────
-  // toJson: devolva {'id': ..., 'title': ..., 'rating': ..., 'year': ...}
-  // fromJson: faça o caminho de volta. Dica: `(json['rating'] as num).toDouble()`
-  // (o JSON pode trazer 8 em vez de 8.0).
-  // Extra (opcional): se `posterPath != null`, inclua também 'posterPath' no toJson e leia no
-  // fromJson (`json['posterPath'] as String?`) — assim o pôster dos dados reais sobrevive offline.
-  Map<String, dynamic> toJson() => throw UnimplementedError('TASK 12: implemente toJson()');
+  // ── TASK 12 — serialização ──────────────────────────────────────────────────────────
+  // posterPath só entra quando existe (dados reais do TMDB): assim o pôster sobrevive offline
+  // e o JSON da lista simulada continua com exatamente os 4 campos.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'rating': rating,
+        'year': year,
+        if (posterPath != null) 'posterPath': posterPath,
+      };
 
-  factory Movie.fromJson(Map<String, dynamic> json) =>
-      throw UnimplementedError('TASK 12: implemente Movie.fromJson()');
+  // `as num` + toDouble(): o JSON pode trazer 8 (int) em vez de 8.0 (double)
+  factory Movie.fromJson(Map<String, dynamic> json) => Movie(
+        id: json['id'] as int,
+        title: json['title'] as String,
+        rating: (json['rating'] as num).toDouble(),
+        year: json['year'] as String,
+        posterPath: json['posterPath'] as String?,
+      );
 }
