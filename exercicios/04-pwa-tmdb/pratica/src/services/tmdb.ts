@@ -32,13 +32,9 @@ tmdbClient.interceptors.request.use((config) => {
   return config;
 });
 
-// Implemente fetchPopularMovies usando tmdbClient.
-//
-// Endpoint : GET /movie/popular
-// Parâmetros: { language: 'pt-BR', page }
-//
-// Dica: tmdbClient.get<MoviesResponse>('/movie/popular', { params: {...} })
-// e retorne o `data` da resposta.
-export async function fetchPopularMovies(_page = 1): Promise<MoviesResponse> {
-  throw new Error('TODO 1: fetchPopularMovies não implementada');
+export async function fetchPopularMovies(page = 1): Promise<MoviesResponse> {
+  const { data } = await tmdbClient.get<MoviesResponse>('/movie/popular', {
+    params: { language: 'pt-BR', page },
+  });
+  return data;
 }
